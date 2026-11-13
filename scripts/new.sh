@@ -2,8 +2,9 @@
 # 建一条嵌套的索引文件夹链(在当前目录下),顺带在远端建好每一级对应的目录。
 # 支持任意深度,比如 <host>/<task-group>/<task>,不强求都要建到底——host 单独一级,
 # 或 host+一级任务,很多情况下就够。已存在的上级会被复用、往下继承,不会重新创建或覆盖已有内容。
-# 每一级都会有 .delegate.json(host/远端目录/profile)、CLAUDE.md(只放用户意图,不放探测到的
-# 具体命令/路径——那些会过时,需要时重新问远端,不要当成永久记忆)、task.md(这一级的运行日志)。
+# 每一级只有两个文件: .delegate.json(host/远端目录/profile,机器用) 和 CLAUDE.md(只放用户
+# 意图,不放探测到的具体命令/路径——那些会过时,需要时重新问远端,不要当成永久记忆,也不要
+# 在本地攒运行日志之类会越写越多的东西;最新的运行结果永远看远端的 .result.json 就够)。
 # 建好之后,通常接着用 Edit 把探测后聊出来的"用户意图"写进对应那一级的 CLAUDE.md。
 #
 # 用法: new.sh <host> <seg1> [seg2] [seg3] ... [--profile 名字]
@@ -82,7 +83,6 @@ f, host, remote_dir, profile = sys.argv[1:5]
 json.dump({"host": host, "remote_dir": remote_dir, "profile": profile}, open(f, "w"), ensure_ascii=False, indent=2)
 ' "$level_dir/.delegate.json" "$host" "$cur_remote_dir" "$cur_profile"
   claude_md_template "$host" 1 > "$level_dir/CLAUDE.md"
-  printf '# %s\n\n目标/意图写在同一层的 CLAUDE.md,这里只记运行日志。\n\n## 运行日志(run.sh/start-bg.sh 会往下追加)\n' "$host" > "$level_dir/task.md"
   echo "新建: $level_dir"
 fi
 
@@ -109,8 +109,6 @@ f, host, remote_dir, profile = sys.argv[1:5]
 json.dump({"host": host, "remote_dir": remote_dir, "profile": profile}, open(f, "w"), ensure_ascii=False, indent=2)
 ' "$level_dir/.delegate.json" "$host" "$remote_dir" "$cur_profile"
     claude_md_template "$seg" 0 > "$level_dir/CLAUDE.md"
-    printf '# %s\n\n- host: `%s`\n- 远端目录: `%s`\n- 创建时间: %s\n- 目标/意图写在同一层的 CLAUDE.md,这里只记运行日志。\n\n## 索引(只放指针,别把远端内容抄过来)\n\n- 远端 prompt/结果: `%s/.prompt.txt` / `%s/.result.json`\n\n## 运行日志(run.sh/start-bg.sh 会往下追加)\n' \
-      "$seg" "$host" "$remote_dir" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$remote_dir" "$remote_dir" > "$level_dir/task.md"
     cur_remote_dir="$remote_dir"
     echo "新建: $level_dir"
   fi

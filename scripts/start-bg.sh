@@ -74,8 +74,5 @@ d["last_run"] = {"pid": pid, "name": name, "result_path": remote_dir + "/.result
 json.dump(d, open(f, "w"), ensure_ascii=False, indent=2)
 ' "$folder/.delegate.json" "$pid" "$name" "$REMOTE_DIR"
 
-printf -- '\n- %s  起后台任务 [%s/%s]  PID=%s,用 status.sh 查进度\n' \
-  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$profile" "$name" "$pid" >> "$folder/task.md"
-
 echo "PID=$pid NAME=$name"
 echo "查进度: $DR_SELF_DIR/status.sh $folder"

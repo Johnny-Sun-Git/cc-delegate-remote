@@ -24,11 +24,10 @@ description: Delegate a single, narrowly-scoped remote-only operation — a file
 
 ## 索引文件夹树 —— 层级继承怎么做到的
 
-每一级(`<host>`、`<host>/<group>`、`<host>/<group>/<task>`……)都有三个文件:
+每一级(`<host>`、`<host>/<group>`、`<host>/<group>/<task>`……)只有两个文件,**故意不留任何会越写越多的东西**(没有运行日志,最新结果永远看远端的 `.result.json` 就好,不在本地攒一份):
 
 - **`.delegate.json`**:机器可读,`{host, remote_dir, profile}`。新建深一级时,`remote_dir` 按路径拼接,`profile` 从上一级继承(除非显式覆盖),人不用管这个文件。
 - **`CLAUDE.md`**:只放**用户意图**——这台机器/这个任务,用户到底想要什么、有什么边界/禁区。**不放探测到的具体命令/路径/事实**(文件是否存在、系统细节这类会随时间变化的东西),那些该在需要时重新问远端,不该被当成写死的记忆。host 根这一级额外带一段骨架自带的"操作方式"说明(见上面),不是用户意图的一部分,正常不用改。往下每一级只补充"比上一级更具体"的意图,不重复抄。
-- **`task.md`**:运行日志,每次 `run.sh`/`start-bg.sh` 追加一行摘要(时间/profile/OK|ERROR + 结果前 200 字),不抄远端完整内容。
 
 **关键机制:`CLAUDE.md` 这个文件名不是随便起的。** Claude Code 本身就会沿目录树往上走,把经过的每一级 `CLAUDE.md` 都加载、叠加到上下文里。`run.sh`/`start-bg.sh` 在委派任务前,会把本地这条索引链(从目标那一级到 host 根)上所有的 `CLAUDE.md` 同步到远端对应的路径;远端的 Claude Code 一启动,沿目录树往上走就会自动看到整条链叠加的用户意图——不用自己写继承逻辑,白捡 Claude Code 自带的能力。本地是编写意图的地方(会被版本控制、可以分享),远端只是同步过去的镜像,改了本地重新 `run.sh`/`start-bg.sh` 一次就会同步最新版。
 
@@ -55,7 +54,7 @@ $S/new.sh internal torch-sipu symm-mem-fix oom-case
 # 2) 一次性任务,同步等结果
 echo "具体任务描述,写清楚目标/范围/期望输出" | $S/run.sh internal/torch-sipu/symm-mem-fix/oom-case
 # 输出是一行 JSON: .result / .is_error / .total_cost_usd / .num_turns
-# 本地这一级的 task.md 只会追加一行摘要,不会抄远端完整内容
+# 本地不会留下任何东西;想回看结果,重新 ssh 查远端的 .result.json 就好
 
 # 3) 长任务,起后台进程立即返回
 echo "具体任务描述" | $S/start-bg.sh internal/torch-sipu/symm-mem-fix/oom-case my-build-task
@@ -74,7 +73,7 @@ $S/status.sh internal/torch-sipu/symm-mem-fix/oom-case
 2. **一次性/后台调用一定带 `--permission-prompts none`**(脚本已固定),否则遇到需要确认的操作会挂起等一个不存在的人。
 3. **用 `--add-dir` 把访问范围限制在任务目录(+ 明确需要的项目目录)**,不要给根目录或整个 home。
 4. **这两个脚本不碰远端 Claude Code 自己的 `--bg`/`agents`/`attach` 这套东西**(原因见下面"已知的坑"),所以也不会跟那台机器上别人/别的会话手起的东西产生冲突。
-5. **索引文件夹只放指针和用户意图,别把远端运行内容、也别把探测到的具体事实抄过来**——`task.md` 只追加一行摘要,完整结果永远留在远端的 `.result.json`。`CLAUDE.md` 只是用户想要什么(稳定、由人决定、很少变),不是运行日志,也不是环境探测缓存。
+5. **索引文件夹只放指针和用户意图,不留运行日志,也别把探测到的具体事实抄过来**——完整结果永远留在远端的 `.result.json`,本地没有任何会越写越多的文件。`CLAUDE.md` 只是用户想要什么(稳定、由人决定、很少变),不是运行记录,也不是环境探测缓存。
 6. prompt 永远走文件传输(先 `cat >` 到远端文件,再在远端读出来),**不要**自己手写 `ssh host "claude -p \"...\""` 这种内联拼引号的命令——prompt 里一旦有引号、反引号、`$`、换行,内联拼接大概率出错或造成注入。
 7. `CLAUDE.md` 会被原样同步到远端对应目录,**别在里面写密钥/凭据**——这些文件是要被读、被分享的说明文档,不是秘密存放处。
 

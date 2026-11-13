@@ -50,17 +50,11 @@ REMOTE
 )" || true
 echo "$result"
 
-# 3) 本地索引文件夹只记一行摘要(时间/profile/是否出错),不抄远端的完整内容
-status_rc=1
-summary="(未拿到可解析的结果,见上面的 timeout/ssh 报错)"
-if [[ -n "$result" ]]; then
-  summary="$(python3 -c '
+# 3) 退出码反映这次调用是否成功——不在本地留任何记录(远端的 .result.json 已经是最新状态,
+#    本地索引文件夹不攒东西),成功是 is_error:false,解析不出来也算失败。
+[[ -n "$result" ]] || exit 1
+python3 -c '
 import json, sys
 d = json.loads(sys.argv[1])
-print((("ERROR" if d.get("is_error") else "OK")) + "|" + str(d.get("result",""))[:200].replace(chr(10), " "))
 sys.exit(1 if d.get("is_error") else 0)
-' "$result")" && status_rc=0 || status_rc=1
-  [[ -n "$summary" ]] || summary="(结果不是合法 JSON,见上面的输出)"
-fi
-printf -- '\n- %s  [%s]  %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$profile" "$summary" >> "$folder/task.md"
-exit "$status_rc"
+' "$result"
