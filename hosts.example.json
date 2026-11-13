@@ -1,0 +1,20 @@
+{
+  "// 把这份文件复制到": "~/.config/delegate-remote/hosts.json 并改成你自己的,那份文件不会被公开/提交到任何仓库",
+  "internal": {
+    "remote_task_root": "/absolute/path/on/that/host/for/task/dirs",
+    "default_profile": "default",
+    "profiles": {
+      "default": { "bin": "claude", "args": [] },
+      "cheap":   { "bin": "claude-ccr", "args": ["--model", "some-provider/some-cheap-model"] },
+      "smart":   { "bin": "claude-ccr", "args": ["--model", "some-provider/some-stronger-model"],
+                   "note": "比如额度有限/更贵/偶尔不稳的那个,写在这里提醒自己少用" }
+    }
+  },
+  "another-host": {
+    "remote_task_root": "/home/you/tasks",
+    "default_profile": "default",
+    "profiles": {
+      "default": { "bin": "claude", "args": [] }
+    }
+  }
+}
