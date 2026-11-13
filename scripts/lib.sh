@@ -56,3 +56,28 @@ dr_upload_prompt() {
   local host="$1" dir="$2"
   ssh "$host" "mkdir -p -- $(printf %q "$dir") && cat > $(printf %q "$dir")/.prompt.txt"
 }
+
+# 把 <folder> 到"host 根"这条链上、每一级的 CLAUDE.md 同步到远端对应目录(文件不存在就跳过)。
+# 本地是资产文档的编写处(会被 git 追踪、可分享),远端只是镜像——这样远端 Claude Code 启动时,
+# 沿目录树往上走会自动叠加读到整条链的资产/边界说明,不用自己写继承逻辑。
+# 要求 <folder> 本身及它的每一级祖先目录都有 .delegate.json(new.sh 建的时候就会写),
+# 一旦某一级没有 .delegate.json,就说明已经走出了这套索引文件夹的管理范围,到此为止。
+dr_sync_claude_md_chain() {
+  local folder="$1" dir="$folder" h rd
+  while [[ -f "$dir/.delegate.json" ]]; do
+    if [[ -f "$dir/CLAUDE.md" ]]; then
+      read -r h rd < <(python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+print(d.get("host",""), d.get("remote_dir",""))
+' "$dir/.delegate.json" 2>/dev/null || true) || true
+      h="${h:-}"; rd="${rd:-}"
+      if [[ -n "$h" && -n "$rd" ]]; then
+        ssh "$h" "mkdir -p -- $(printf %q "$rd") && cat > $(printf %q "$rd")/CLAUDE.md" < "$dir/CLAUDE.md"
+      fi
+    fi
+    local parent; parent="$(dirname "$dir")"
+    [[ "$parent" == "$dir" ]] && break   # 到文件系统根了,保险起见退出
+    dir="$parent"
+  done
+}

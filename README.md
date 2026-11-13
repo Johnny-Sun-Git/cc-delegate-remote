@@ -3,7 +3,7 @@
 一个 Claude Code Skill:把任务委派给**另一台机器自己的 Claude Code**,而不是在本地假装能操作远程文件。
 
 - 机制:本地的 Claude Code 的 Read/Edit/Grep/Glob 只认本机文件系统,碰不到任何远程主机。这个 skill 不去模拟"远程 Edit",而是把整个任务通过 ssh 整体交给目标机器上已经配置好的 Claude Code 去跑,拿结构化的 JSON 结果回来。
-- 约定:每个 `(服务器, 任务)` 配一个本地索引文件夹 `<host>-<task-slug>/`,里面只放指针(去哪台机器、哪个远端目录、用哪个模型/命令),不放实际代码或数据。方便同时追踪很多台机器、很多个任务,而且索引文件夹本身不含敏感/实际内容,可以放心分享。
+- 约定:本地建一棵嵌套的索引文件夹树 `<host>/<group>/.../<task>`(深度不限),每一级只放指针(去哪台机器、哪个远端目录、用哪个模型/命令)和这一级的资产/边界说明,不放实际代码或数据。委派任务前,这条链上的 `CLAUDE.md` 会同步到远端对应路径——Claude Code 本身就会沿目录树叠加加载 `CLAUDE.md`,所以远端的 Claude Code 启动时自动就"继承"了整条链的资产/边界说明,不用自己写继承逻辑。方便同时追踪很多台机器、很多层任务分组,而且索引文件夹本身不含敏感/实际内容,可以放心分享。
 
 详细用法、安全规则、已知坑见 [`SKILL.md`](./SKILL.md)。
 
@@ -25,7 +25,7 @@ cp ~/.claude/skills/delegate-remote/hosts.example.json ~/.config/delegate-remote
 |---|---|
 | `SKILL.md` | 给 Claude 自己看的使用说明(安全规则、怎么选 profile、已知坑) |
 | `hosts.example.json` | 配置模板,复制改名后使用,**不提交真实配置** |
-| `scripts/new.sh` | 新建一个 `<host>-<task-slug>` 索引文件夹,顺带在远端建好任务目录 |
+| `scripts/new.sh` | 建一条 `<host>/<group>/.../<task>` 索引文件夹链(任意深度),顺带在远端建好对应目录 |
 | `scripts/run.sh` | 一次性任务,同步等结果 |
 | `scripts/start-bg.sh` | 长任务,起远端后台进程,立即返回 |
 | `scripts/status.sh` | 查后台任务进度/结果 |

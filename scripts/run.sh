@@ -24,6 +24,10 @@ mapfile -t model_args < <(dr_cfg get-args "$HOST" "$profile")
 
 add_dir_q=$(printf ' --add-dir %q' "$REMOTE_DIR" "${extra_dirs[@]:-}")
 
+# 0) 把本地这条索引链(从这一级到 host 根)上的 CLAUDE.md 同步到远端对应目录,
+#    这样远端 Claude Code 启动时沿目录树往上走会自动叠加读到整条链的资产/边界说明。
+dr_sync_claude_md_chain "$folder"
+
 # 1) 把 prompt 原样传过去,走纯字节流,不经过任何 shell 解释
 dr_upload_prompt "$HOST" "$REMOTE_DIR"
 

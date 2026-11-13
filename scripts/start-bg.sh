@@ -30,6 +30,7 @@ mapfile -t model_args < <(dr_cfg get-args "$HOST" "$profile")
 
 add_dir_q=$(printf ' --add-dir %q' "$REMOTE_DIR" "${extra_dirs[@]:-}")
 
+dr_sync_claude_md_chain "$folder"
 dr_upload_prompt "$HOST" "$REMOTE_DIR"
 
 # --permission-mode 必须显式给: ccr 类工具不传会自己补 --dangerously-skip-permissions(无约束);
